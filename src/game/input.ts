@@ -27,6 +27,12 @@ function radialDeadzone(x: number, y: number, dz = 0.18) {
   return { x: x * scale, y: y * scale };
 }
 
+function flick(v: number) {
+  const a = Math.abs(v);
+  const boost = a > 8 ? 1 + Math.min(1.8, (a - 8) * 0.045) : 1;
+  return v * boost;
+}
+
 export class GameInput {
   keys = new Set<string>();
   injected: string[] | null = null;
@@ -36,7 +42,10 @@ export class GameInput {
   touchMoveX = 0;
   touchMoveY = 0;
   invertY = false;
-  sens = 0.00235;
+  scale = 1;
+  mouseSens = 0.0064;
+  touchSens = 0.016;
+  padSens = 0.085;
   locked = false;
   queuedJump = false;
 
@@ -78,8 +87,9 @@ export class GameInput {
   };
   private onMouseMove = (e: MouseEvent) => {
     if (!this.locked) return;
-    this.lookDX += e.movementX;
-    this.lookDY += e.movementY;
+    const k = this.mouseSens * this.scale;
+    this.lookDX += flick(e.movementX) * k;
+    this.lookDY += flick(e.movementY) * k;
   };
   private onMouseDown = (e: MouseEvent) => {
     if (e.button === 0) this.fireHeld = true;
@@ -87,12 +97,16 @@ export class GameInput {
   private onMouseUp = (e: MouseEvent) => {
     if (e.button === 0) this.fireHeld = false;
   };
+  private onLock = () => {
+    this.locked = document.pointerLockElement != null;
+  };
 
   attach(target: HTMLElement) {
     window.addEventListener("keydown", this.onKeyDown);
     window.addEventListener("keyup", this.onKeyUp);
     window.addEventListener("blur", this.onBlur);
     document.addEventListener("visibilitychange", this.onBlur);
+    document.addEventListener("pointerlockchange", this.onLock);
     target.addEventListener("mousemove", this.onMouseMove);
     target.addEventListener("mousedown", this.onMouseDown);
     window.addEventListener("mouseup", this.onMouseUp);
@@ -103,6 +117,7 @@ export class GameInput {
     window.removeEventListener("keyup", this.onKeyUp);
     window.removeEventListener("blur", this.onBlur);
     document.removeEventListener("visibilitychange", this.onBlur);
+    document.removeEventListener("pointerlockchange", this.onLock);
     target.removeEventListener("mousemove", this.onMouseMove);
     target.removeEventListener("mousedown", this.onMouseDown);
     window.removeEventListener("mouseup", this.onMouseUp);
@@ -112,14 +127,20 @@ export class GameInput {
     this.injected = codes;
   }
 
-  addLook(dx: number, dy: number) {
-    this.lookDX += dx;
-    this.lookDY += dy;
+  setLookSettings(scale: number, invertY: boolean) {
+    this.scale = Math.max(0.35, Math.min(2.6, scale));
+    this.invertY = invertY;
+  }
+
+  addLook(dx: number, dy: number, touch = false) {
+    const k = (touch ? this.touchSens : this.mouseSens) * this.scale;
+    this.lookDX += flick(dx) * k;
+    this.lookDY += flick(dy) * k;
   }
 
   sampleLook() {
     const dx = this.lookDX;
-    const dy = this.lookDY;
+    const dy = this.lookDY * (this.invertY ? -1 : 1);
     this.lookDX = 0;
     this.lookDY = 0;
     return { dx, dy };
@@ -152,9 +173,9 @@ export class GameInput {
         const ls = radialDeadzone(pad.axes[0] ?? 0, pad.axes[1] ?? 0);
         mx += ls.x;
         my -= ls.y;
-        const rs = radialDeadzone(pad.axes[2] ?? 0, pad.axes[3] ?? 0, 0.12);
-        this.lookDX += rs.x * 18;
-        this.lookDY += rs.y * 18;
+        const rs = radialDeadzone(pad.axes[2] ?? 0, pad.axes[3] ?? 0, 0.1);
+        this.lookDX += rs.x * this.padSens * this.scale;
+        this.lookDY += rs.y * this.padSens * this.scale;
         if (pad.buttons[7]?.value > 0.35) padFire = true;
         if (pad.buttons[0]?.pressed) padJump = true;
         if (pad.buttons[6]?.value > 0.4) padSprint = true;
