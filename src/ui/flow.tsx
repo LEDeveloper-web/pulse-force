@@ -2,7 +2,7 @@ import { useState } from "react";
 import { MAP_LIST, type MapId } from "../game/maps";
 import { MODE_LABEL, type GameMode, type HudState, type Team } from "../game/types";
 import { BLUE_CHARS, RED_CHARS } from "../game/profile";
-import { signIn, signOut, signUp, type Account } from "./account";
+import { signIn, signUp, type Account } from "./account";
 import type { Party } from "./net";
 
 function cn(...xs: Array<string | false | null | undefined>) { return xs.filter(Boolean).join(" "); }
@@ -18,9 +18,9 @@ export function AuthModal(props: { onClose: () => void; onOk: (a: Account) => vo
         <p className="kicker">{mode === "in" ? "Sign in" : "Sign up"}</p>
         <h2>{mode === "in" ? "Welcome back" : "Create ID"}</h2>
         <label>Email</label>
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@mail.com" />
+        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@mail.com" autoComplete="email" />
         <label>Password</label>
-        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+        <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "up" ? "new-password" : "current-password"} />
         {err && <p className="muted">{err}</p>}
         <button className="big" onClick={() => {
           const res = mode === "in" ? signIn(email, password) : signUp(email, password, email.split("@")[0] || "Ranger");
@@ -43,13 +43,24 @@ export function ResultsCard(props: {
       <div className="panel">
         <p className="kicker">Match over</p>
         <h2>{props.winner}</h2>
-        <ul>{props.hud?.board.map((p) => (
+        <ul>{(props.hud?.board || []).map((p) => (
           <li key={p.id}><span className={p.team}>{p.name}{p.bot ? " · bot" : ""}</span><span>{Math.floor(p.score)}</span></li>
         ))}</ul>
         {props.kind === "member" ? (
-          <><button className="big" onClick={props.onPlayAgain}>Play again</button><button className="big alt" onClick={props.onLeave || props.onMain}>Leave</button></>
+          <>
+            <button className="big" onClick={props.onPlayAgain}>Play again</button>
+            <button className="big alt" onClick={props.onLeave || props.onMain}>Leave</button>
+          </>
+        ) : props.kind === "solo" ? (
+          <>
+            <button className="big" onClick={props.onPlayAgain}>Play game</button>
+            <button className="big alt" onClick={props.onMain}>Main menu</button>
+          </>
         ) : (
-          <><button className="big" onClick={props.onPlayAgain}>Play again</button><button className="big alt" onClick={props.onMain}>Main menu</button></>
+          <>
+            <button className="big" onClick={props.onPlayAgain}>Play again</button>
+            <button className="big alt" onClick={props.onMain}>Main menu</button>
+          </>
         )}
       </div>
     </div>
@@ -57,12 +68,18 @@ export function ResultsCard(props: {
 }
 
 export function PauseMenu(props: { party: Party; onResume: () => void; onExit: () => void }) {
+  const showNet = props.party.role !== "solo";
   return (
     <div className="overlay">
       <div className="panel">
         <p className="kicker">Menu</p>
         <h2>Paused</h2>
-        {props.party.role !== "solo" && <p className="muted">IP {props.party.ip || "—"} · {props.party.code}</p>}
+        {showNet && (
+          <p className="muted ip-line">
+            Host IP <b>{props.party.ip || "—"}</b>
+            {props.party.code ? <> · {props.party.code}</> : null}
+          </p>
+        )}
         <button className="big" onClick={props.onResume}>Resume</button>
         <button className="big alt" onClick={props.onExit}>Exit to main</button>
       </div>
@@ -70,16 +87,23 @@ export function PauseMenu(props: { party: Party; onResume: () => void; onExit: (
   );
 }
 
-export function VoteMap(props: { mapId: MapId; onPick: (id: MapId) => void; onNext: () => void }) {
+export function VoteMap(props: { mapId: MapId; votes: Record<string, string>; onPick: (id: MapId) => void; onNext: () => void; locked?: boolean }) {
+  const tally = Object.values(props.votes).reduce<Record<string, number>>((acc, id) => {
+    acc[id] = (acc[id] || 0) + 1;
+    return acc;
+  }, {});
   return (
     <div className="screen screen-mp">
       <p className="kicker">Play again</p>
       <h1>Vote map</h1>
-      <p className="muted">Everyone picks a map. The most voted map is used.</p>
+      <p className="muted">Everyone who joined votes a map. After this you pick your own team and operator.</p>
       <div className="grid3 mapgrid">{MAP_LIST.map((m) => (
-        <button key={m.id} className={cn("card", props.mapId === m.id && "on")} onClick={() => props.onPick(m.id)}><b>{m.name}</b><span>{m.code}</span></button>
+        <button key={m.id} className={cn("card", props.mapId === m.id && "on")} onClick={() => props.onPick(m.id)}>
+          <b>{m.name}</b>
+          <span>{m.code}{tally[m.id] ? ` · ${tally[m.id]} vote` : ""}</span>
+        </button>
       ))}</div>
-      <button className="big" onClick={props.onNext}>Lock vote</button>
+      <button className="big" disabled={props.locked} onClick={props.onNext}>{props.locked ? "Waiting for host" : "Lock vote"}</button>
     </div>
   );
 }
@@ -87,29 +111,30 @@ export function VoteMap(props: { mapId: MapId; onPick: (id: MapId) => void; onNe
 export function PickOperator(props: {
   team: Team; character: string;
   onTeam: (t: Team) => void; onCharacter: (c: string) => void; onStart: () => void;
+  waiting?: boolean;
 }) {
   const chars = props.team === "blue" ? BLUE_CHARS : RED_CHARS;
   return (
     <div className="screen screen-team">
       <p className="kicker">Play again</p>
       <h1>Choose operator</h1>
-      <p className="muted">Pick your team. This is not a vote.</p>
+      <p className="muted">Pick Force (blue) or Rogue (red). This is your choice, not a vote.</p>
       <div className="row">
-        <button className={cn("team blue", props.team === "blue" && "on")} onClick={() => props.onTeam("blue")}>Force</button>
-        <button className={cn("team red", props.team === "red" && "on")} onClick={() => props.onTeam("red")}>Rogue</button>
+        <button className={cn("team blue", props.team === "blue" && "on")} onClick={() => props.onTeam("blue")}>Force · blue</button>
+        <button className={cn("team red", props.team === "red" && "on")} onClick={() => props.onTeam("red")}>Rogue · red</button>
       </div>
       <div className="grid4">{chars.map((c) => (
         <button key={c} className={cn("card", props.character === c && "on")} onClick={() => props.onCharacter(c)}><b>{c}</b></button>
       ))}</div>
-      <button className="big" onClick={props.onStart}>Start next match</button>
+      <button className="big" onClick={props.onStart}>{props.waiting ? "Ready — waiting" : "Start next match"}</button>
     </div>
   );
 }
 
-export function AccountChip(props: { account: Account | null; onOpen: () => void }) {
+export function AccountChip(props: { account: Account | null; onOpen: () => void; onSignOut: () => void }) {
   return (
     <button className="authchip" onClick={() => {
-      if (props.account) { signOut(); location.reload(); return; }
+      if (props.account) { props.onSignOut(); return; }
       props.onOpen();
     }}>{props.account ? props.account.id : "Sign in"}</button>
   );
