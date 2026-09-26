@@ -43,6 +43,7 @@ export class GameInput {
   touchMoveY = 0;
   invertY = false;
   scale = 1;
+  sens = 1;
   mouseSens = 0.0064;
   touchSens = 0.016;
   padSens = 0.085;
@@ -132,7 +133,7 @@ export class GameInput {
     this.invertY = invertY;
   }
 
-  addLook(dx: number, dy: number, touch = false) {
+  addLook(dx: number, dy: number, touch = true) {
     const k = (touch ? this.touchSens : this.mouseSens) * this.scale;
     this.lookDX += flick(dx) * k;
     this.lookDY += flick(dy) * k;
