@@ -2,6 +2,8 @@ import * as THREE from "three";
 import type { Team } from "./types";
 import type { ArenaMap, Solid } from "./maps";
 import { MAPS } from "./maps";
+import { makeViewmodel } from "./avatars";
+export { makeAvatar, spawnBurst, tickBursts } from "./avatars";
 
 export type { Solid } from "./maps";
 export { spawnPoint, inHill, inOwnBase, getMap, MAPS, MAP_LIST } from "./maps";
@@ -210,29 +212,8 @@ export function createWorld(canvas: HTMLCanvasElement, map: ArenaMap = MAPS.room
     bursts.push(p);
   }
 
-  const disposables: THREE.Object3D[] = [];
-
   function dispose() {
     floorTex.dispose();
-    scene.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
-        obj.geometry.dispose();
-        const mat = obj.material;
-        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-        else mat.dispose();
-      }
-    });
-    overlay.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
-        obj.geometry.dispose();
-        const mat = obj.material;
-        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
-        else mat.dispose();
-      }
-    });
-    for (const d of disposables) {
-      void d;
-    }
   }
 
   return {
