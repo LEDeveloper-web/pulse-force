@@ -7,6 +7,15 @@ export type Party = {
   country: string;
 };
 
+export type PartyEvent =
+  | { t: "hello"; name: string; party: Party }
+  | { t: "end"; winner: string }
+  | { t: "vote"; name: string; map: string }
+  | { t: "pick-ready"; name: string }
+  | { t: "start"; map: string; match: number }
+  | { t: "phase"; phase: "vote" | "pick" | "play"; map?: string; match?: number }
+  | { t: "bye"; reason: string };
+
 const KEY = "pulse-force-party-v1";
 
 export function loadParty(): Party {
@@ -74,4 +83,28 @@ export function joinParty(codeOrIp: string, kind: "local" | "online"): Party | n
   };
   saveParty(party);
   return party;
+}
+
+function busName(party: Party) {
+  const key = (party.ip || party.code || "solo").replace(/[^a-zA-Z0-9._-]/g, "_");
+  return "pulse-force-bus-" + key;
+}
+
+export function openPartyBus(party: Party, onEvent: (ev: PartyEvent) => void) {
+  if (!party.code && !party.ip) return { send: (_: PartyEvent) => {}, close: () => {} };
+  let ch: BroadcastChannel | null = null;
+  try {
+    ch = new BroadcastChannel(busName(party));
+    ch.onmessage = (m) => {
+      if (m.data && typeof m.data === "object" && "t" in m.data) onEvent(m.data as PartyEvent);
+    };
+  } catch { /* ignore */ }
+  return {
+    send(ev: PartyEvent) {
+      try { ch?.postMessage(ev); } catch { /* ignore */ }
+    },
+    close() {
+      try { ch?.close(); } catch { /* ignore */ }
+    },
+  };
 }

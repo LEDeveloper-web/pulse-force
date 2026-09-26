@@ -23,3 +23,13 @@
 .mini{height:36px;border:0;border-radius:8px;background:#d4d8de;color:#09090b;padding:0 12px}
 .mini.ghost{background:transparent;border:1px solid #2a2a30;color:#f1f2f4}
 .toast{position:absolute;bottom:72px;left:50%;transform:translateX(-50%);z-index:40;background:#121214;border:1px solid #2a2a30;border-radius:8px;padding:8px 12px}
+.authchip{position:absolute;top:16px;right:16px;z-index:40;height:36px;padding:0 12px;border:1px solid #2a2a30;background:#121214;color:#f1f2f4;border-radius:999px;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.overlay{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;background:rgba(9,9,11,.78);padding:16px}
+.panel{width:min(100%,420px);background:#121214;border:1px solid #2a2a30;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:8px}
+.panel ul{list-style:none;padding:0;margin:12px 0}
+.panel li{display:flex;justify-content:space-between;font-family:ui-monospace,Menlo,monospace;font-size:13px;margin:4px 0}
+.panel li .red{color:#e24b4b}
+.panel li .blue{color:#3d8bff}
+.ip-line b{color:#f1f2f4}
+input[type=password],input[type=email]{width:100%;height:48px;border:1px solid #2a2a30;background:#1a1a1e;color:#f1f2f4;border-radius:6px;padding:0 12px}
+.hud-right{display:flex;gap:6px;align-items:center;pointer-events:auto}
