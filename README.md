@@ -1,8 +1,8 @@
 # Pulse Force
 
-Family-friendly pulse-tag arena shooter. Eight modes, five maps, six weapons. Play solo in the browser.
+Family-friendly laser-tag arena inspired by Special Forces Group 2.
 
-```bash
-npm install
-npm run dev
-```
+- New Game, mode, map, character, bots
+- 9 modes and 30 maps
+- In-match BUY shop and cash
+- Solo bots
