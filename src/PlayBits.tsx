@@ -1,0 +1,77 @@
+import { useEffect, useRef, useState } from "react";
+import type { ArenaEngine } from "./game/engine";
+import type { MapId } from "./game/maps";
+import { GEAR, SHOP_TABS, shopOf, type ShopTab, type WeaponId } from "./game/weapons";
+import { MODE_LABEL, type GameMode, type HudState, type Team } from "./game/types";
+
+function cn(...xs: Array<string | false | null | undefined>) { return xs.filter(Boolean).join(" "); }
+function formatTime(s: number) { const t=Math.max(0,Math.ceil(s)); return `${Math.floor(t/60)}:${(t%60).toString().padStart(2,"0")}`; }
+
+export function PlayView(props: { mode: GameMode; mapId: MapId; team: Team; name: string; primary: WeaponId; lookScale: number; invertY: boolean; muted: boolean; startMoney: number; botCount: number; onHud: (h: HudState)=>void; onMatchEnd: (w: string)=>void; }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const engineRef = useRef<ArenaEngine | null>(null);
+  const [needClick, setNeedClick] = useState(true);
+  const [touch, setTouch] = useState(false);
+  useEffect(() => { setTouch(window.matchMedia("(pointer: coarse)").matches); }, []);
+  useEffect(() => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    let cancelled = false; let engine: ArenaEngine | null = null;
+    void import("./game/engine").then(({ ArenaEngine }) => {
+      if (cancelled || !canvasRef.current) return;
+      engine = new ArenaEngine({ canvas: canvasRef.current, role: "solo", mode: props.mode, mapId: props.mapId, weapon: props.primary, lookScale: props.lookScale, invertY: props.invertY, startMoney: props.startMoney, team: props.team, playerName: props.name, selfId: "local", botFill: true, botCount: props.botCount, onHud: props.onHud, onMatchEnd: props.onMatchEnd });
+      engineRef.current = engine; engine.start(); window.__pulseArena?.setMuted?.(props.muted);
+    });
+    return () => { cancelled = true; engine?.dispose(); engineRef.current = null; };
+  }, [props.mode, props.mapId, props.primary, props.lookScale, props.invertY, props.team, props.name, props.startMoney, props.botCount, props.onHud, props.onMatchEnd]);
+  const lock = () => { engineRef.current?.unlockAudio(); if (touch) { setNeedClick(false); return; } canvasRef.current?.requestPointerLock(); setNeedClick(false); };
+  return (
+    <div className="play">
+      <canvas ref={canvasRef} />
+      {needClick && !touch && <button className="clickplay" onClick={lock}>Click to deploy</button>}
+      {touch && <TouchPad onMove={(x,y)=>engineRef.current?.setTouchMove(x,y)} onLook={(dx,dy)=>engineRef.current?.addLook(dx,dy,true)} onFire={(v)=>engineRef.current?.setTouchFire(v)} onJump={()=>engineRef.current?.queueJump()} />}
+    </div>
+  );
+}
+
+function TouchPad(props: { onMove:(x:number,y:number)=>void; onLook:(dx:number,dy:number)=>void; onFire:(v:boolean)=>void; onJump:()=>void; }) {
+  const moveId = useRef<number|null>(null); const lookId = useRef<number|null>(null);
+  const origin = useRef({x:0,y:0}); const last = useRef({x:0,y:0});
+  return (
+    <div className="touch"
+      onPointerDown={(e)=>{ if (e.clientX < window.innerWidth*0.45 && moveId.current==null) { moveId.current=e.pointerId; origin.current={x:e.clientX,y:e.clientY}; } else { lookId.current=e.pointerId; last.current={x:e.clientX,y:e.clientY}; } }}
+      onPointerMove={(e)=>{ if (e.pointerId===moveId.current) { const dx=(e.clientX-origin.current.x)/46; const dy=(origin.current.y-e.clientY)/46; const m=Math.hypot(dx,dy)||1; const s=Math.min(1,m)/m; props.onMove(dx*s,dy*s); } else if (e.pointerId===lookId.current) { props.onLook((e.clientX-last.current.x)*1.35,(e.clientY-last.current.y)*1.35); last.current={x:e.clientX,y:e.clientY}; } }}
+      onPointerUp={(e)=>{ if (e.pointerId===moveId.current) { moveId.current=null; props.onMove(0,0); } if (e.pointerId===lookId.current) lookId.current=null; }}>
+      <button className="tbtn jump" onPointerDown={(e)=>{e.stopPropagation(); props.onJump();}}>Jump</button>
+      <button className="tbtn fire" onPointerDown={(e)=>{e.stopPropagation(); props.onFire(true);}} onPointerUp={(e)=>{e.stopPropagation(); props.onFire(false);}}>Fire</button>
+    </div>
+  );
+}
+
+export function Hud(props: { hud: HudState; muted: boolean; buyOpen: boolean; shopTab: ShopTab; onShopTab:(t:ShopTab)=>void; onBuy:(id:string)=>void; onToggleBuy:()=>void; onMuted:(v:boolean)=>void; onLeave:()=>void; }) {
+  const { hud } = props;
+  return (
+    <div className="hud">
+      <div className="top">
+        <div className="feed">{hud.feed.map((f)=><p key={f.id}>{f.text}</p>)}</div>
+        <div className="score"><span className="red">{Math.floor(hud.scores.red)}</span><span>{formatTime(hud.timeLeft)}</span><span className="blue">{Math.floor(hud.scores.blue)}</span><p>{MODE_LABEL[hud.mode]} · {hud.mapName}</p></div>
+        <div className="hud-right"><span className="cash">${hud.money}</span><button onClick={()=>{props.onMuted(!props.muted); window.__pulseArena?.setMuted?.(!props.muted);}}>{props.muted?"Sound":"Mute"}</button></div>
+      </div>
+      <div className="cross">+</div>
+      {hud.countdown>0 && <p className="count">{hud.message}</p>}
+      {!hud.alive && <p className="count">{hud.respawnIn>0?`Tagged · ${hud.respawnIn.toFixed(1)}s`:"Out this round"}</p>}
+      <button className="buyfab" onClick={props.onToggleBuy}>BUY</button>
+      <div className="bottom"><div className="hp"><i style={{width:`${Math.min(100,hud.hp)}%`}} /></div><div className="ammo"><span>{Math.round(hud.hp)} HP{hud.vest?` · vest ${hud.vest}`:""}</span><span>{hud.weaponName}</span><span>{hud.reloading?"RELOAD":`${hud.ammo} / ${hud.reserve}`}</span></div></div>
+      {props.buyOpen && (
+        <div className="shopui">
+          <div className="shopui-head"><b>Shop</b><span>${hud.money}</span><button onClick={props.onToggleBuy}>Close</button></div>
+          <div className="shopui-tabs">{SHOP_TABS.map((t)=>(<button key={t.id} className={cn(props.shopTab===t.id && "on")} onClick={()=>props.onShopTab(t.id)}>{t.label}</button>))}</div>
+          <div className="shopui-list">
+            {props.shopTab==="gear" ? GEAR.map((g)=>(<button key={g.id} onClick={()=>props.onBuy(g.id)}><b>{g.name}</b><span>${g.price}</span></button>))
+              : shopOf(props.shopTab).map((w)=>(<button key={w.id} disabled={hud.money<w.price && w.price>0} onClick={()=>props.onBuy(w.id)}><b>{w.name}</b><span>${w.price}</span></button>))}
+          </div>
+        </div>
+      )}
+      {hud.paused && (<div className="overlay"><div className="panel"><h2>Paused</h2><button className="deploy" onClick={()=>window.__pulseArena?.setPaused?.(false)}>Resume</button><button onClick={props.onLeave}>Leave match</button></div></div>)}
+    </div>
+  );
+}
