@@ -1,2 +1,5 @@
-# pulse-force
-Pulse Force — special forces pulse-tag arena with modes, maps, and weapons
+# Pulse Force
+
+Special forces pulse-tag arena. Eight modes, five maps, six weapons.
+
+Play solo vs bots or host a private room.
