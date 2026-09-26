@@ -1,16 +1,15 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { ArenaEngine } from "./game/engine";
+import { useCallback, useEffect, useState } from "react";
 import { BOMB_MAPS, MAP_LIST, type MapId } from "./game/maps";
-import { GEAR, SHOP_TABS, WEAPONS, shopOf, startWeapon, type ShopTab, type WeaponId } from "./game/weapons";
+import { WEAPONS, startWeapon, type ShopTab, type WeaponId } from "./game/weapons";
 import { MODE_BLURB, MODE_LABEL, type GameMode, type HudState, type Team } from "./game/types";
 import { BLUE_CHARS, RED_CHARS, loadProfile, payout, rankFor, saveProfile, type Profile } from "./game/profile";
+import { Hud, PlayView } from "./PlayBits";
 
 const MODES: GameMode[] = ["classic","resurrection","ctf","zombie","bomb","knives","deathmatch","armsrace","sniper"];
 const NAMES = ["Ranger","Scout","Vesper","Comet","Quill","Harbor","Nimbus","Atlas"];
 type Screen = "home" | "setup" | "playing" | "results";
 function cn(...xs: Array<string | false | null | undefined>) { return xs.filter(Boolean).join(" "); }
 function randomName() { return `${NAMES[Math.floor(Math.random()*NAMES.length)]}-${Math.floor(10+Math.random()*89)}`; }
-function formatTime(s: number) { const t=Math.max(0,Math.ceil(s)); return `${Math.floor(t/60)}:${(t%60).toString().padStart(2,"0")}`; }
 
 export function GameApp() {
   const [screen, setScreen] = useState<Screen>("home");
