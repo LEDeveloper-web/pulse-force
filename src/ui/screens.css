@@ -1,0 +1,25 @@
+.screen{min-height:100dvh;padding:22px 18px 28px;display:flex;flex-direction:column;gap:12px;max-width:720px;margin:0 auto}
+.screen-main{justify-content:center;text-align:center;background:radial-gradient(circle at 50% 0,#1a1a22,#09090b 60%)}
+.screen-game{background:#0b0d12}
+.screen-solo{background:#0b120e}
+.screen-mp{background:#0b1018}
+.screen-srv{background:#10100c}
+.screen-fr{background:#120e12}
+.screen-set{background:#0e0e10}
+.screen-team{background:#101018}
+.poster{font-family:"Barlow Condensed",sans-serif;font-size:64px;letter-spacing:.06em;margin:0}
+.tag{color:#9a9aa3;margin:0 0 18px}
+.stack{display:flex;flex-direction:column;gap:10px}
+.stack.slim{gap:6px}
+.big{height:56px;border:0;border-radius:10px;background:#d4d8de;color:#09090b;font-family:"Barlow Condensed",sans-serif;font-size:24px}
+.big.alt{background:#16161a;color:#f1f2f4;border:1px solid #2a2a30}
+.alone-top{margin-bottom:8px}
+.backonly{height:32px;border:1px solid #2a2a30;background:transparent;color:#f1f2f4;border-radius:6px;padding:0 10px;margin-bottom:8px}
+.scroll{overflow:auto;padding-bottom:24px}
+.rowcard{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid #2a2a30;background:#121214;color:#f1f2f4;border-radius:10px;padding:12px}
+.rowcard span{color:#71717a;font-size:12px}
+.play-only{background:#000}
+.list{display:flex;flex-direction:column;gap:8px}
+.mini{height:36px;border:0;border-radius:8px;background:#d4d8de;color:#09090b;padding:0 12px}
+.mini.ghost{background:transparent;border:1px solid #2a2a30;color:#f1f2f4}
+.toast{position:absolute;bottom:72px;left:50%;transform:translateX(-50%);z-index:40;background:#121214;border:1px solid #2a2a30;border-radius:8px;padding:8px 12px}
