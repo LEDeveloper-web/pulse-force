@@ -1,0 +1,56 @@
+*{box-sizing:border-box}
+html,body,#root{height:100%;margin:0;background:#09090b;color:#f1f2f4;font-family:"IBM Plex Sans",system-ui,sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+.shell{position:relative;height:100dvh;overflow:hidden;background:#09090b}
+.edge{position:absolute;top:0;bottom:0;width:6px;z-index:5;pointer-events:none}
+.edge.red{left:0;background:#e24b4b}
+.edge.blue{right:0;background:#3d8bff}
+.menu{position:relative;z-index:20;height:100%;overflow:auto;padding:28px 20px 40px;max-width:980px;margin:0 auto}
+.kicker{letter-spacing:.28em;text-transform:uppercase;font-size:11px;color:#9a9aa3}
+h1{font-family:"Barlow Condensed",sans-serif;font-size:64px;margin:4px 0 8px;letter-spacing:.02em}
+h2{font-family:"Barlow Condensed",sans-serif;font-size:36px;margin:4px 0}
+.lead,.muted{color:#9a9aa3;max-width:520px;line-height:1.5}
+label{display:block;margin:18px 0 6px;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:#9a9aa3}
+input{width:100%;height:48px;border:1px solid #2a2a30;background:#1a1a1e;color:#f1f2f4;border-radius:6px;padding:0 12px}
+.grid4,.grid3{display:grid;gap:8px}
+.grid4{grid-template-columns:repeat(2,1fr)}
+.grid3{grid-template-columns:repeat(2,1fr)}
+@media(min-width:700px){.grid4{grid-template-columns:repeat(4,1fr)}.grid3{grid-template-columns:repeat(3,1fr)}}
+.card{text-align:left;border:1px solid #2a2a30;background:#121214;color:#9a9aa3;border-radius:8px;padding:10px}
+.card b{display:block;color:#f1f2f4;font-family:"Barlow Condensed",sans-serif;font-size:16px}
+.card span{font-size:11px;color:#71717a}
+.card.on{border-color:#d4d8de;background:#1a1a1e;color:#f1f2f4}
+.row{display:flex;gap:8px;margin-top:12px}
+.team{flex:1;height:44px;border:0;border-radius:6px;color:#fff}
+.team.red{background:#7a2424}
+.team.blue{background:#1d3f7a}
+.team.on.red{background:#e24b4b}
+.team.on.blue{background:#3d8bff}
+.deploy{margin-top:20px;height:52px;width:100%;border:0;border-radius:8px;background:#d4d8de;color:#09090b;font-family:"Barlow Condensed",sans-serif;font-size:22px;letter-spacing:.04em}
+.play,.play canvas{position:absolute;inset:0;width:100%;height:100%}
+.clickplay{position:absolute;inset:0;z-index:10;background:rgba(9,9,11,.55);color:#f1f2f4;border:0;font-family:"Barlow Condensed",sans-serif;font-size:28px}
+.hud{position:absolute;inset:0;z-index:20;pointer-events:none}
+.top{display:flex;justify-content:space-between;padding:16px}
+.feed{max-width:36%;font-size:12px;color:rgba(241,242,244,.8)}
+.score{text-align:center;font-family:"Barlow Condensed",sans-serif;font-size:28px}
+.score .red{color:#e24b4b;margin-right:10px}
+.score .blue{color:#3d8bff;margin-left:10px}
+.score p{margin:0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9a9aa3;font-family:"IBM Plex Sans",sans-serif}
+.top button{pointer-events:auto;background:transparent;border:1px solid #2a2a30;color:#f1f2f4;border-radius:6px;padding:6px 10px}
+.cross{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:28px;opacity:.8}
+.count{position:absolute;top:42%;left:0;right:0;text-align:center;font-family:"Barlow Condensed",sans-serif;font-size:56px}
+.bottom{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);width:min(92%,460px)}
+.hp{height:8px;background:#1a1a1e;border-radius:99px;overflow:hidden}
+.hp i{display:block;height:100%;background:#5ecf8a}
+.ammo{display:flex;justify-content:space-between;margin-top:8px;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+.overlay{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;background:rgba(9,9,11,.72);padding:16px;pointer-events:auto}
+.panel{width:min(100%,420px);background:#121214;border:1px solid #2a2a30;border-radius:12px;padding:24px}
+.panel ul{list-style:none;padding:0;margin:12px 0}
+.panel li{display:flex;justify-content:space-between;font-family:ui-monospace,Menlo,monospace;font-size:13px;margin:4px 0}
+.panel li .red{color:#e24b4b}
+.panel li .blue{color:#3d8bff}
+.touch{position:absolute;inset:0;z-index:10}
+.tbtn{position:absolute;right:20px;border:1px solid #2a2a30;background:rgba(26,26,30,.8);color:#f1f2f4;border-radius:999px}
+.tbtn.jump{bottom:112px;width:56px;height:56px}
+.tbtn.fire{bottom:32px;width:64px;height:64px}
