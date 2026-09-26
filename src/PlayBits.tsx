@@ -47,14 +47,14 @@ function TouchPad(props: { onMove:(x:number,y:number)=>void; onLook:(dx:number,d
   );
 }
 
-export function Hud(props: { hud: HudState; muted: boolean; buyOpen: boolean; shopTab: ShopTab; onShopTab:(t:ShopTab)=>void; onBuy:(id:string)=>void; onToggleBuy:()=>void; onMuted:(v:boolean)=>void; onLeave:()=>void; }) {
+export function Hud(props: { hud: HudState; muted: boolean; buyOpen: boolean; shopTab: ShopTab; onShopTab:(t:ShopTab)=>void; onBuy:(id:string)=>void; onToggleBuy:()=>void; onMuted:(v:boolean)=>void; onMenu:()=>void; onLeave:()=>void; }) {
   const { hud } = props;
   return (
     <div className="hud">
       <div className="top">
         <div className="feed">{hud.feed.map((f)=><p key={f.id}>{f.text}</p>)}</div>
         <div className="score"><span className="red">{Math.floor(hud.scores.red)}</span><span>{formatTime(hud.timeLeft)}</span><span className="blue">{Math.floor(hud.scores.blue)}</span><p>{MODE_LABEL[hud.mode]} · {hud.mapName}</p></div>
-        <div className="hud-right"><span className="cash">${hud.money}</span><button onClick={()=>{props.onMuted(!props.muted); window.__pulseArena?.setMuted?.(!props.muted);}}>{props.muted?"Sound":"Mute"}</button></div>
+        <div className="hud-right"><span className="cash">${hud.money}</span><button onClick={()=>{props.onMuted(!props.muted); window.__pulseArena?.setMuted?.(!props.muted);}}>{props.muted?"Sound":"Mute"}</button><button onClick={props.onMenu}>Menu</button></div>
       </div>
       <div className="cross">+</div>
       {hud.countdown>0 && <p className="count">{hud.message}</p>}
@@ -71,7 +71,6 @@ export function Hud(props: { hud: HudState; muted: boolean; buyOpen: boolean; sh
           </div>
         </div>
       )}
-      {hud.paused && (<div className="overlay"><div className="panel"><h2>Paused</h2><button className="deploy" onClick={()=>window.__pulseArena?.setPaused?.(false)}>Resume</button><button onClick={props.onLeave}>Leave match</button></div></div>)}
     </div>
   );
 }
