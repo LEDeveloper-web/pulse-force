@@ -4,35 +4,18 @@ export type WeaponId =
   | "dbarrel" | "spas" | "super90"
   | "m16" | "ak47" | "m4" | "hk416" | "aug"
   | "m24" | "scout" | "awp"
-  | "m249";
+  | "m249"
+  | "rifle" | "smg" | "shot" | "pistol" | "burst" | "sniper";
 
 export type ShopTab = "melee" | "pistol" | "smg" | "shot" | "rifle" | "sniper" | "heavy" | "gear";
 
 export type WeaponDef = {
-  id: WeaponId;
-  name: string;
-  short: string;
-  tab: ShopTab;
-  blurb: string;
-  mag: number;
-  reserve: number;
-  fireCd: number;
-  reload: number;
-  damage: number;
-  pellets: number;
-  spread: number;
-  range: number;
-  auto: boolean;
-  recoil: number;
-  move: number;
-  price: number;
+  id: WeaponId; name: string; short: string; tab: ShopTab; blurb: string;
+  mag: number; reserve: number; fireCd: number; reload: number; damage: number;
+  pellets: number; spread: number; range: number; auto: boolean; recoil: number; move: number; price: number;
 };
 
-const W = (
-  id: WeaponId, name: string, tab: ShopTab, price: number,
-  mag: number, reserve: number, fireCd: number, reload: number,
-  damage: number, extra: Partial<WeaponDef> = {},
-): WeaponDef => ({
+const W = (id: WeaponId, name: string, tab: ShopTab, price: number, mag: number, reserve: number, fireCd: number, reload: number, damage: number, extra: Partial<WeaponDef> = {}): WeaponDef => ({
   id, name, short: name, tab, blurb: name, mag, reserve, fireCd, reload, damage,
   pellets: 1, spread: 0.016, range: 60, auto: tab === "smg" || tab === "rifle" || tab === "heavy" || id === "glock",
   recoil: 0.04, move: 1, price, ...extra,
@@ -62,37 +45,32 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
   scout: W("scout", "Scout", "sniper", 3000, 10, 50, 1.2, 2.3, 70, { auto: false, spread: 0.003, range: 92, move: 0.94 }),
   awp: W("awp", "AWP", "sniper", 5000, 10, 50, 1.35, 2.5, 100, { auto: false, spread: 0.001, range: 100, recoil: 0.16, move: 0.86 }),
   m249: W("m249", "M249", "heavy", 5000, 100, 300, 0.08, 3.2, 26, { spread: 0.028, recoil: 0.06, range: 62, move: 0.84 }),
+  rifle: W("rifle", "M16", "rifle", 2500, 20, 160, 0.1, 1.5, 28, { spread: 0.012, range: 70 }),
+  smg: W("smg", "MP5", "smg", 1500, 30, 210, 0.07, 1.3, 20, { spread: 0.022, range: 42 }),
+  shot: W("shot", "SPAS-12", "shot", 2500, 8, 48, 0.7, 2.2, 16, { pellets: 7, spread: 0.08, range: 20, auto: false }),
+  pistol: W("pistol", "PM", "pistol", 300, 8, 120, 0.18, 1.1, 34, { auto: false, range: 40 }),
+  burst: W("burst", "M16", "rifle", 2500, 20, 160, 0.1, 1.5, 28),
+  sniper: W("sniper", "M24", "sniper", 1500, 5, 50, 1.05, 2.2, 90, { auto: false, spread: 0.002, range: 95, recoil: 0.12, move: 0.9 }),
 };
 
 export const SHOP_TABS: { id: ShopTab; label: string }[] = [
-  { id: "pistol", label: "Pistols" },
-  { id: "smg", label: "SMG" },
-  { id: "shot", label: "Shotgun" },
-  { id: "rifle", label: "Rifles" },
-  { id: "sniper", label: "Sniper" },
-  { id: "heavy", label: "Machine" },
-  { id: "melee", label: "Knives" },
-  { id: "gear", label: "Gear" },
+  { id: "pistol", label: "Pistols" }, { id: "smg", label: "SMG" }, { id: "shot", label: "Shotgun" },
+  { id: "rifle", label: "Rifles" }, { id: "sniper", label: "Sniper" }, { id: "heavy", label: "Machine" },
+  { id: "melee", label: "Knives" }, { id: "gear", label: "Gear" },
 ];
 
 export const WEAPON_ORDER = Object.keys(WEAPONS) as WeaponId[];
 export const GUNGAME_ORDER: WeaponId[] = ["glock", "tmp", "mp5", "m16", "ak47", "m24", "awp", "knife"];
-
-export function shopOf(tab: ShopTab) {
-  return WEAPON_ORDER.map((id) => WEAPONS[id]).filter((w) => w.tab === tab);
-}
-
+export function shopOf(tab: ShopTab) { return WEAPON_ORDER.map((id) => WEAPONS[id]).filter((w) => w.tab === tab); }
 export function getWeapon(id: WeaponId | string | undefined): WeaponDef {
   return WEAPONS[(id as WeaponId) in WEAPONS ? (id as WeaponId) : "pm"];
 }
-
 export function startWeapon(mode: string): WeaponId {
   if (mode === "knives") return "knife";
   if (mode === "sniper") return "m24";
   if (mode === "armsrace") return GUNGAME_ORDER[0]!;
   return "pm";
 }
-
 export const GEAR = [
   { id: "vest50", name: "Vest 50%", price: 500, vest: 50 },
   { id: "vest100", name: "Vest 100%", price: 1000, vest: 100 },
