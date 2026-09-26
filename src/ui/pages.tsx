@@ -4,7 +4,10 @@ import { WEAPONS, type WeaponId } from "../game/weapons";
 import { MODE_BLURB, MODE_LABEL, type GameMode, type Team } from "../game/types";
 import { BLUE_CHARS, RED_CHARS, type Profile } from "../game/profile";
 import { go, type Route } from "./path";
+import { AccountChip } from "./flow";
+import type { Account } from "./account";
 import {
+  COUNTRIES,
   DIRECTORY,
   filterRooms,
   loadFriends,
@@ -29,18 +32,20 @@ function Top(props: { kicker: string; title: string; back?: () => void }) {
   );
 }
 
-export function MainMenu(props: { name: string }) {
+export function MainMenu(props: { name: string; account: Account | null; onAuth: () => void; onSignOut: () => void }) {
   return (
     <div className="screen screen-main">
+      <AccountChip account={props.account} onOpen={props.onAuth} onSignOut={props.onSignOut} />
       <p className="poster">PULSE FORCE</p>
-      <p className="tag">{props.name}</p>
+      <p className="tag">{props.name}{props.account ? ` · ${props.account.id}` : ""}</p>
       <div className="stack">
         <button className="big" onClick={() => go({ page: "singleplayer" })}>Singleplayer</button>
         <button className="big alt" onClick={() => go({ page: "multiplayer" })}>Multiplayer</button>
-        <button className="big alt" onClick={() => go({ page: "serverplayer" })}>Servers</button>
+        <button className="big alt" onClick={() => go({ page: "serverplayer" })}>ServerPlayer</button>
         <button className="big alt" onClick={() => go({ page: "friendlist" })}>Friends</button>
         <button className="big alt" onClick={() => go({ page: "settings" })}>Settings</button>
       </div>
+      <p className="muted">Offline solo · Local hotspot · Online internet</p>
     </div>
   );
 }
@@ -51,8 +56,8 @@ export function GameHub() {
       <Top kicker="Game" title="Play" back={() => go({ page: "main" })} />
       <div className="stack">
         <button className="big" onClick={() => go({ page: "singleplayer" })}>Solo</button>
-        <button className="big alt" onClick={() => go({ page: "multiplayer" })}>Online rooms</button>
-        <button className="big alt" onClick={() => go({ page: "serverplayer", action: "find" })}>Server list</button>
+        <button className="big alt" onClick={() => go({ page: "multiplayer" })}>Local rooms</button>
+        <button className="big alt" onClick={() => go({ page: "serverplayer", action: "search" })}>Server list</button>
       </div>
     </div>
   );
@@ -98,7 +103,7 @@ export function SetupForm(props: {
 export function SingleplayerHome() {
   return (
     <div className="screen screen-solo">
-      <Top kicker="Singleplayer" title="Vs Bots" back={() => go({ page: "main" })} />
+      <Top kicker="Singleplayer · offline solo" title="Vs Bots" back={() => go({ page: "main" })} />
       <div className="stack">
         <button className="big" onClick={() => go({ page: "singleplayer", action: "create" })}>Create match</button>
         <button className="big alt" onClick={() => go({ page: "singleplayer", action: "game" })}>Quick start</button>
@@ -127,30 +132,30 @@ export function SingleplayerCreate(props: {
 export function MultiplayerHome() {
   return (
     <div className="screen screen-mp">
-      <Top kicker="Multiplayer" title="Rooms" back={() => go({ page: "main" })} />
+      <Top kicker="Multiplayer · local hotspot" title="Local play" back={() => go({ page: "main" })} />
       <div className="stack">
-        <button className="big" onClick={() => go({ page: "multiplayer", action: "create" })}>Create room</button>
-        <button className="big alt" onClick={() => go({ page: "multiplayer", action: "join" })}>Join room</button>
-        <button className="big alt" onClick={() => go({ page: "serverplayer" })}>Open servers</button>
+        <button className="big" onClick={() => go({ page: "multiplayer", action: "create" })}>Create game</button>
+        <button className="big alt" onClick={() => go({ page: "multiplayer", action: "join" })}>Join by host IP</button>
       </div>
     </div>
   );
 }
 
 export function MultiplayerCreate(props: {
-  roomName: string; setRoomName: (v: string) => void; onCreate: () => void;
+  roomName: string; setRoomName: (v: string) => void; onCreate: () => void; hostIp?: string;
   mode: GameMode; mapId: MapId; team: Team; bots: number; character: string;
   onMode: (m: GameMode) => void; onMap: (m: MapId) => void; onTeam: (t: Team) => void;
   onBots: (n: number) => void; onCharacter: (c: string) => void;
 }) {
   return (
     <div className="screen screen-mp">
-      <Top kicker="Multiplayer / create" title="Host" back={() => go({ page: "multiplayer" })} />
+      <Top kicker="Multiplayer / create · hotspot host" title="Host" back={() => go({ page: "multiplayer" })} />
       <div className="scroll">
         <label>Room name</label>
         <input value={props.roomName} maxLength={24} onChange={(e) => props.setRoomName(e.target.value)} />
+        {props.hostIp ? <p className="muted">Host IP {props.hostIp}</p> : <p className="muted">Your LAN IP shows on the in-game Menu after you start.</p>}
         <SetupForm {...props} />
-        <button className="big" onClick={props.onCreate}>Create and enter</button>
+        <button className="big" onClick={props.onCreate}>Create and play</button>
       </div>
     </div>
   );
@@ -159,10 +164,10 @@ export function MultiplayerCreate(props: {
 export function MultiplayerJoin(props: { code: string; setCode: (v: string) => void; rooms: ServerRoom[]; onJoin: (r?: ServerRoom) => void; note: string }) {
   return (
     <div className="screen screen-mp">
-      <Top kicker="Multiplayer / join" title="Join" back={() => go({ page: "multiplayer" })} />
-      <label>Code or name</label>
-      <input value={props.code} onChange={(e) => props.setCode(e.target.value)} placeholder="OWN-AB12" />
-      <button className="big" onClick={() => props.onJoin()}>Join</button>
+      <Top kicker="Multiplayer / join · member on host WiFi" title="Join host" back={() => go({ page: "multiplayer" })} />
+      <label>Host IP</label>
+      <input value={props.code} onChange={(e) => props.setCode(e.target.value)} placeholder="192.168.43.1" />
+      <button className="big" onClick={() => props.onJoin()}>Join game</button>
       {props.note && <p className="muted">{props.note}</p>}
       <div className="list">{props.rooms.slice(0, 6).map((r) => (
         <button key={r.id} className="rowcard" onClick={() => props.onJoin(r)}><b>{r.name}</b><span>{r.id}</span></button>
@@ -171,7 +176,7 @@ export function MultiplayerJoin(props: { code: string; setCode: (v: string) => v
   );
 }
 
-export function SettingsPage(props: { profile: Profile; patch: (p: Partial<Profile>) => void }) {
+export function SettingsPage(props: { profile: Profile; account?: Account | null; patch: (p: Partial<Profile>) => void }) {
   const p = props.profile;
   return (
     <div className="screen screen-set">
@@ -179,6 +184,8 @@ export function SettingsPage(props: { profile: Profile; patch: (p: Partial<Profi
       <div className="scroll">
         <label>Callsign</label>
         <input value={p.name} maxLength={16} onChange={(e) => props.patch({ name: e.target.value.slice(0, 16) })} />
+        {props.account && <p className="muted">ID {props.account.id} · {props.account.email}</p>}
+        {!props.account && <p className="muted">Sign in on Main to lock an ID to this name.</p>}
         <label>Look {p.lookScale.toFixed(2)}x</label>
         <input type="range" min={0.4} max={2.4} step={0.05} value={p.lookScale} onChange={(e) => props.patch({ lookScale: Number(e.target.value) })} />
         <label>Start cash ${p.startMoney}</label>
@@ -215,7 +222,7 @@ function ServerRows(props: { rooms: ServerRoom[]; onJoin: (r: ServerRoom) => voi
       {props.rooms.map((r) => (
         <button key={r.id} className="rowcard" onClick={() => props.onJoin(r)}>
           <b>{r.name}</b>
-          <span>{r.id} · {MODE_LABEL[r.mode]} · {r.map} · {r.players}/{r.max} · {r.ping}ms</span>
+          <span>{r.country} · {r.ip || r.id} · {MODE_LABEL[r.mode]} · {r.map} · {r.players}/{r.max} · {r.ping}ms</span>
         </button>
       ))}
       {props.rooms.length === 0 && <p className="muted">No servers.</p>}
@@ -226,13 +233,12 @@ function ServerRows(props: { rooms: ServerRoom[]; onJoin: (r: ServerRoom) => voi
 export function ServerHome(props: { rooms: ServerRoom[]; onJoin: (r: ServerRoom) => void }) {
   return (
     <div className="screen screen-srv">
-      <Top kicker="Servers" title="Board" back={() => go({ page: "main" })} />
+      <Top kicker="ServerPlayer · online internet" title="Official servers" back={() => go({ page: "main" })} />
       <div className="stack slim">
         <button className="big" onClick={() => go({ page: "serverplayer", action: "create" })}>Create</button>
         <button className="big alt" onClick={() => go({ page: "serverplayer", action: "join" })}>Join</button>
-        <button className="big alt" onClick={() => go({ page: "serverplayer", action: "find" })}>Find</button>
-        <button className="big alt" onClick={() => go({ page: "serverplayer", action: "filter" })}>Filter</button>
         <button className="big alt" onClick={() => go({ page: "serverplayer", action: "search" })}>Search</button>
+        <button className="big alt" onClick={() => go({ page: "serverplayer", action: "filter" })}>Filter</button>
       </div>
       <ServerRows rooms={props.rooms.slice(0, 6)} onJoin={props.onJoin} />
     </div>
@@ -241,16 +247,21 @@ export function ServerHome(props: { rooms: ServerRoom[]; onJoin: (r: ServerRoom)
 
 export function ServerCreate(props: {
   roomName: string; setRoomName: (v: string) => void; onCreate: () => void;
+  country: string; setCountry: (v: string) => void;
   mode: GameMode; mapId: MapId; team: Team; bots: number; character: string;
   onMode: (m: GameMode) => void; onMap: (m: MapId) => void; onTeam: (t: Team) => void;
   onBots: (n: number) => void; onCharacter: (c: string) => void;
 }) {
   return (
     <div className="screen screen-srv">
-      <Top kicker="Servers / create" title="New server" back={() => go({ page: "serverplayer" })} />
+      <Top kicker="Servers / create · internet" title="New server" back={() => go({ page: "serverplayer" })} />
       <div className="scroll">
         <label>Server name</label>
         <input value={props.roomName} maxLength={24} onChange={(e) => props.setRoomName(e.target.value)} />
+        <label>Country</label>
+        <div className="grid4">{COUNTRIES.map((c) => (
+          <button key={c} className={cn("card", props.country === c && "on")} onClick={() => props.setCountry(c)}><b>{c === "INT" ? "International" : c}</b></button>
+        ))}</div>
         <SetupForm {...props} />
         <button className="big" onClick={props.onCreate}>Open server</button>
       </div>
@@ -262,7 +273,7 @@ export function ServerJoin(props: { code: string; setCode: (v: string) => void; 
   return (
     <div className="screen screen-srv">
       <Top kicker="Servers / join" title="Enter" back={() => go({ page: "serverplayer" })} />
-      <input value={props.code} onChange={(e) => props.setCode(e.target.value)} placeholder="SRV-01 or Pulse Hall" />
+      <input value={props.code} onChange={(e) => props.setCode(e.target.value)} placeholder="Host IP or server name" />
       <button className="big" onClick={() => props.onJoin()}>Join</button>
       {props.note && <p className="muted">{props.note}</p>}
       <ServerRows rooms={props.rooms} onJoin={(r) => props.onJoin(r)} />
@@ -273,18 +284,22 @@ export function ServerJoin(props: { code: string; setCode: (v: string) => void; 
 export function ServerFind(props: { route: Route; rooms: ServerRoom[]; onJoin: (r: ServerRoom) => void }) {
   const list = useMemo(() => filterRooms(props.rooms, props.route), [props.rooms, props.route]);
   const search = props.route.action === "search" || props.route.action === "find";
+  const sorted = [...list].sort((a, b) => a.ping - b.ping);
   return (
     <div className="screen screen-srv">
-      <Top kicker={`Servers / ${props.route.action || "find"}`} title={props.route.action === "filter" ? "Filter" : "Find"} back={() => go({ page: "serverplayer" })} />
+      <Top kicker={`Servers / ${props.route.action === "filter" ? "filter" : "search"}`} title={props.route.action === "filter" ? "Filter" : "Search"} back={() => go({ page: "serverplayer" })} />
       {search && (
-        <input type="search" defaultValue={props.route.q} placeholder="Search servers" onKeyDown={(e) => {
+        <input type="search" defaultValue={props.route.q} placeholder="Search name, IP, country" onKeyDown={(e) => {
           if (e.key === "Enter") go({ page: "serverplayer", action: "search", q: (e.target as HTMLInputElement).value, filter: props.route.filter, mode: props.route.mode });
         }} />
       )}
       {props.route.action === "filter" && (
         <>
-          <div className="grid4">{["", "open", "lowping", "full", "local"].map((f) => (
-            <button key={f || "all"} className={cn("card", (props.route.filter || "") === f && "on")} onClick={() => go({ page: "serverplayer", action: "filter", filter: f, q: props.route.q, mode: props.route.mode })}><b>{f || "all"}</b></button>
+          <label>Country</label>
+          <div className="grid4">{["", "INT", ...COUNTRIES.filter((c) => c !== "INT")].map((f) => (
+            <button key={f || "all"} className={cn("card", (props.route.filter || "") === f.toLowerCase() && "on")} onClick={() => go({ page: "serverplayer", action: "filter", filter: f.toLowerCase(), q: props.route.q, mode: props.route.mode })}>
+              <b>{f === "" ? "All" : f === "INT" ? "International" : f}</b>
+            </button>
           ))}</div>
           <div className="grid4">
             <button className={cn("card", !props.route.mode && "on")} onClick={() => go({ page: "serverplayer", action: "filter", filter: props.route.filter })}><b>Any mode</b></button>
@@ -294,7 +309,8 @@ export function ServerFind(props: { route: Route; rooms: ServerRoom[]; onJoin: (
           </div>
         </>
       )}
-      <ServerRows rooms={list} onJoin={props.onJoin} />
+      <p className="muted">Sorted by ping (ms).</p>
+      <ServerRows rooms={sorted} onJoin={props.onJoin} />
     </div>
   );
 }
