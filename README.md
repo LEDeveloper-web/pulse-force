@@ -1,5 +1,8 @@
 # Pulse Force
 
-Special forces pulse-tag arena. Eight modes, five maps, six weapons.
+Family-friendly pulse-tag arena shooter. Eight modes, five maps, six weapons. Play solo in the browser.
 
-Play solo vs bots or host a private room.
+```bash
+npm install
+npm run dev
+```
