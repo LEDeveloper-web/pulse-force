@@ -217,6 +217,9 @@ export type EngineConfig = {
   mode: GameMode;
   mapId: MapId;
   weapon: WeaponId;
+  loadout?: WeaponId[];
+  lookScale?: number;
+  invertY?: boolean;
   team: Team;
   playerName: string;
   selfId: string;
