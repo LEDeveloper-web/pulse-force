@@ -17,6 +17,7 @@ export type WeaponDef = {
   auto: boolean;
   recoil: number;
   move: number;
+  price: number;
 };
 
 export const WEAPONS: Record<WeaponId, WeaponDef> = {
@@ -37,6 +38,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: true,
     recoil: 0.038,
     move: 1,
+    price: 0,
   },
   smg: {
     id: "smg",
@@ -55,6 +57,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: true,
     recoil: 0.028,
     move: 1.08,
+    price: 750,
   },
   shot: {
     id: "shot",
@@ -73,6 +76,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: false,
     recoil: 0.09,
     move: 0.96,
+    price: 900,
   },
   sniper: {
     id: "sniper",
@@ -91,6 +95,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: false,
     recoil: 0.12,
     move: 0.9,
+    price: 1400,
   },
   pistol: {
     id: "pistol",
@@ -109,6 +114,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: false,
     recoil: 0.03,
     move: 1.06,
+    price: 0,
   },
   burst: {
     id: "burst",
@@ -127,6 +133,7 @@ export const WEAPONS: Record<WeaponId, WeaponDef> = {
     auto: false,
     recoil: 0.05,
     move: 1.02,
+    price: 1100,
   },
 };
 
