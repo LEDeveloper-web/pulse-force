@@ -27,12 +27,6 @@ function radialDeadzone(x: number, y: number, dz = 0.18) {
   return { x: x * scale, y: y * scale };
 }
 
-function flick(v: number) {
-  const a = Math.abs(v);
-  const boost = a > 8 ? 1 + Math.min(1.8, (a - 8) * 0.045) : 1;
-  return v * boost;
-}
-
 export class GameInput {
   keys = new Set<string>();
   injected: string[] | null = null;
@@ -45,7 +39,7 @@ export class GameInput {
   scale = 1;
   sens = 1;
   mouseSens = 0.0064;
-  touchSens = 0.016;
+  touchSens = 0.0092;
   padSens = 0.085;
   locked = false;
   queuedJump = false;
@@ -85,12 +79,16 @@ export class GameInput {
   private onBlur = () => {
     this.keys.clear();
     this.fireHeld = false;
+    this.touchMoveX = 0;
+    this.touchMoveY = 0;
+    this.lookDX = 0;
+    this.lookDY = 0;
   };
   private onMouseMove = (e: MouseEvent) => {
     if (!this.locked) return;
     const k = this.mouseSens * this.scale;
-    this.lookDX += flick(e.movementX) * k;
-    this.lookDY += flick(e.movementY) * k;
+    this.lookDX += e.movementX * k;
+    this.lookDY += e.movementY * k;
   };
   private onMouseDown = (e: MouseEvent) => {
     if (e.button === 0) this.fireHeld = true;
@@ -135,8 +133,8 @@ export class GameInput {
 
   addLook(dx: number, dy: number, touch = true) {
     const k = (touch ? this.touchSens : this.mouseSens) * this.scale;
-    this.lookDX += flick(dx) * k;
-    this.lookDY += flick(dy) * k;
+    this.lookDX += dx * k;
+    this.lookDY += dy * k;
   }
 
   sampleLook() {
@@ -155,8 +153,9 @@ export class GameInput {
     this.prevNext = this.nextWeapon;
 
     const keys = this.injected ? new Set(this.injected) : this.keys;
-    let mx = this.touchMoveX;
-    let my = this.touchMoveY;
+    const stick = radialDeadzone(this.touchMoveX, this.touchMoveY, 0.12);
+    let mx = stick.x;
+    let my = stick.y;
     if (keys.has("KeyA") || keys.has("ArrowLeft")) mx -= 1;
     if (keys.has("KeyD") || keys.has("ArrowRight")) mx += 1;
     if (keys.has("KeyW") || keys.has("ArrowUp")) my += 1;
@@ -194,7 +193,7 @@ export class GameInput {
     this.moveY = my;
     this.jump = keys.has("Space") || padJump || this.queuedJump;
     this.queuedJump = false;
-    this.sprint = keys.has("ShiftLeft") || keys.has("ShiftRight") || padSprint;
+    this.sprint = keys.has("ShiftLeft") || keys.has("ShiftRight") || padSprint || mag > 0.92;
     this.reload = keys.has("KeyR") || padReload;
     this.pause = keys.has("Escape") || padPause;
     this.nextWeapon = keys.has("KeyQ") || keys.has("KeyE");

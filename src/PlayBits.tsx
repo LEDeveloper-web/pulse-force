@@ -12,7 +12,11 @@ export function PlayView(props: { mode: GameMode; mapId: MapId; team: Team; name
   const engineRef = useRef<ArenaEngine | null>(null);
   const [needClick, setNeedClick] = useState(true);
   const [touch, setTouch] = useState(false);
-  useEffect(() => { setTouch(window.matchMedia("(pointer: coarse)").matches); }, []);
+  useEffect(() => {
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const hasTouch = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    setTouch(coarse || hasTouch);
+  }, []);
   useEffect(() => {
     const canvas = canvasRef.current; if (!canvas) return;
     let cancelled = false; let engine: ArenaEngine | null = null;
@@ -28,21 +32,127 @@ export function PlayView(props: { mode: GameMode; mapId: MapId; team: Team; name
     <div className="play">
       <canvas ref={canvasRef} />
       {needClick && !touch && <button className="clickplay" onClick={lock}>Click to deploy</button>}
-      {touch && <TouchPad onMove={(x,y)=>engineRef.current?.setTouchMove(x,y)} onLook={(dx,dy)=>engineRef.current?.addLook(dx,dy,true)} onFire={(v)=>engineRef.current?.setTouchFire(v)} onJump={()=>engineRef.current?.queueJump()} />}
+      {touch && <TouchPad
+        onMove={(x,y)=>engineRef.current?.setTouchMove(x,y)}
+        onLook={(dx,dy)=>engineRef.current?.addLook(dx,dy)}
+        onFire={(v)=>engineRef.current?.setTouchFire(v)}
+        onJump={()=>engineRef.current?.queueJump()}
+      />}
     </div>
   );
 }
 
+const STICK_R = 54;
+const DEAD = 10;
+
 function TouchPad(props: { onMove:(x:number,y:number)=>void; onLook:(dx:number,dy:number)=>void; onFire:(v:boolean)=>void; onJump:()=>void; }) {
-  const moveId = useRef<number|null>(null); const lookId = useRef<number|null>(null);
-  const origin = useRef({x:0,y:0}); const last = useRef({x:0,y:0});
+  const moveId = useRef<number | null>(null);
+  const lookId = useRef<number | null>(null);
+  const fireId = useRef<number | null>(null);
+  const origin = useRef({ x: 0, y: 0 });
+  const last = useRef({ x: 0, y: 0 });
+  const [knob, setKnob] = useState({ x: 0, y: 0, on: false });
+  const moveFn = useRef(props.onMove);
+  const fireFn = useRef(props.onFire);
+  moveFn.current = props.onMove;
+  fireFn.current = props.onFire;
+
+  const haltMove = () => {
+    moveId.current = null;
+    moveFn.current(0, 0);
+    setKnob({ x: 0, y: 0, on: false });
+  };
+  const haltLook = () => { lookId.current = null; };
+  const haltFire = () => {
+    fireId.current = null;
+    fireFn.current(false);
+  };
+
+  useEffect(() => {
+    const end = (e: PointerEvent) => {
+      if (e.pointerId === moveId.current) haltMove();
+      if (e.pointerId === lookId.current) haltLook();
+      if (e.pointerId === fireId.current) haltFire();
+    };
+    const clear = () => { haltMove(); haltLook(); haltFire(); };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    window.addEventListener("blur", clear);
+    document.addEventListener("visibilitychange", clear);
+    return () => {
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+      window.removeEventListener("blur", clear);
+      document.removeEventListener("visibilitychange", clear);
+      clear();
+    };
+  }, []);
+
+  const applyStick = (clientX: number, clientY: number) => {
+    let dx = clientX - origin.current.x;
+    let dy = origin.current.y - clientY;
+    const mag = Math.hypot(dx, dy);
+    if (mag > STICK_R) {
+      dx = (dx / mag) * STICK_R;
+      dy = (dy / mag) * STICK_R;
+    }
+    setKnob({ x: dx, y: -dy, on: true });
+    if (mag < DEAD) {
+      moveFn.current(0, 0);
+      return;
+    }
+    const nx = dx / STICK_R;
+    const ny = dy / STICK_R;
+    moveFn.current(nx, ny);
+  };
+
   return (
-    <div className="touch"
-      onPointerDown={(e)=>{ if (e.clientX < window.innerWidth*0.45 && moveId.current==null) { moveId.current=e.pointerId; origin.current={x:e.clientX,y:e.clientY}; } else { lookId.current=e.pointerId; last.current={x:e.clientX,y:e.clientY}; } }}
-      onPointerMove={(e)=>{ if (e.pointerId===moveId.current) { const dx=(e.clientX-origin.current.x)/46; const dy=(origin.current.y-e.clientY)/46; const m=Math.hypot(dx,dy)||1; const s=Math.min(1,m)/m; props.onMove(dx*s,dy*s); } else if (e.pointerId===lookId.current) { props.onLook((e.clientX-last.current.x)*1.35,(e.clientY-last.current.y)*1.35); last.current={x:e.clientX,y:e.clientY}; } }}
-      onPointerUp={(e)=>{ if (e.pointerId===moveId.current) { moveId.current=null; props.onMove(0,0); } if (e.pointerId===lookId.current) lookId.current=null; }}>
-      <button className="tbtn jump" onPointerDown={(e)=>{e.stopPropagation(); props.onJump();}}>Jump</button>
-      <button className="tbtn fire" onPointerDown={(e)=>{e.stopPropagation(); props.onFire(true);}} onPointerUp={(e)=>{e.stopPropagation(); props.onFire(false);}}>Fire</button>
+    <div
+      className="touch"
+      onPointerDown={(e) => {
+        const el = e.target as HTMLElement;
+        if (el.closest(".tbtn")) return;
+        try { (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId); } catch { /* ignore */ }
+        const leftZone = e.clientX < window.innerWidth * 0.48;
+        if (leftZone && moveId.current == null) {
+          moveId.current = e.pointerId;
+          origin.current = { x: e.clientX, y: e.clientY };
+          applyStick(e.clientX, e.clientY);
+        } else if (lookId.current == null) {
+          lookId.current = e.pointerId;
+          last.current = { x: e.clientX, y: e.clientY };
+        }
+      }}
+      onPointerMove={(e) => {
+        if (e.pointerId === moveId.current) applyStick(e.clientX, e.clientY);
+        else if (e.pointerId === lookId.current) {
+          const dx = e.clientX - last.current.x;
+          const dy = e.clientY - last.current.y;
+          last.current = { x: e.clientX, y: e.clientY };
+          const cap = 28;
+          props.onLook(Math.max(-cap, Math.min(cap, dx)), Math.max(-cap, Math.min(cap, dy)));
+        }
+      }}
+    >
+      <div className={cn("stick", knob.on && "on")} style={{ transform: knob.on ? `translate(${origin.current.x - 60}px, ${origin.current.y - 60}px)` : undefined }}>
+        <i style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
+      </div>
+      <button
+        className="tbtn jump"
+        onPointerDown={(e) => { e.stopPropagation(); e.preventDefault(); props.onJump(); }}
+      >Jump</button>
+      <button
+        className="tbtn fire"
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          fireId.current = e.pointerId;
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+          props.onFire(true);
+        }}
+        onPointerUp={(e) => { e.stopPropagation(); if (e.pointerId === fireId.current) haltFire(); }}
+        onPointerCancel={(e) => { e.stopPropagation(); if (e.pointerId === fireId.current) haltFire(); }}
+      >Fire</button>
     </div>
   );
 }
