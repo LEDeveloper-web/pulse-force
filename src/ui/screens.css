@@ -18,6 +18,7 @@
 .scroll{overflow:auto;padding-bottom:24px}
 .rowcard{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid #2a2a30;background:#121214;color:#f1f2f4;border-radius:10px;padding:12px}
 .rowcard span{color:#71717a;font-size:12px}
+.rowcard.on{border-color:#d4d8de;background:#1a1a1e}
 .play-only{background:#000}
 .list{display:flex;flex-direction:column;gap:8px}
 .mini{height:36px;border:0;border-radius:8px;background:#d4d8de;color:#09090b;padding:0 12px}
