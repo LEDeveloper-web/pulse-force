@@ -3,6 +3,7 @@ import { MAP_LIST, type MapId } from "../game/maps";
 import { MODE_LABEL, type GameMode, type HudState, type Team } from "../game/types";
 import { BLUE_CHARS, RED_CHARS } from "../game/profile";
 import { signIn, signUp, type Account } from "./account";
+import { go } from "./path";
 import type { Party } from "./net";
 
 function cn(...xs: Array<string | false | null | undefined>) { return xs.filter(Boolean).join(" "); }
@@ -30,6 +31,18 @@ export function AuthModal(props: { onClose: () => void; onOk: (a: Account) => vo
         <button className="big alt" onClick={() => setMode(mode === "in" ? "up" : "in")}>{mode === "in" ? "Need an ID? Sign up" : "Have an ID? Sign in"}</button>
         <button className="backonly" onClick={props.onClose}>Close</button>
       </div>
+    </div>
+  );
+}
+
+export function NeedAccount(props: { onAuth: () => void }) {
+  return (
+    <div className="screen screen-srv">
+      <p className="kicker">ServerPlayer</p>
+      <h1>Account required</h1>
+      <p className="muted">Online servers need a signed-in ID. Singleplayer and Multiplayer do not.</p>
+      <button className="big" onClick={props.onAuth}>Sign in or sign up</button>
+      <button className="big alt" onClick={() => go({ page: "main" })}>Back to main</button>
     </div>
   );
 }
@@ -68,17 +81,20 @@ export function ResultsCard(props: {
 }
 
 export function PauseMenu(props: { party: Party; onResume: () => void; onExit: () => void }) {
-  const showNet = props.party.role !== "solo";
+  const showIp = props.party.role !== "solo" && props.party.kind === "local";
   return (
     <div className="overlay">
       <div className="panel">
         <p className="kicker">Menu</p>
         <h2>Paused</h2>
-        {showNet && (
+        {showIp && (
           <p className="muted ip-line">
             Host IP <b>{props.party.ip || "—"}</b>
             {props.party.code ? <> · {props.party.code}</> : null}
           </p>
+        )}
+        {props.party.kind === "online" && props.party.role !== "solo" && (
+          <p className="muted">Online server · {props.party.code || "official"}</p>
         )}
         <button className="big" onClick={props.onResume}>Resume</button>
         <button className="big alt" onClick={props.onExit}>Exit to main</button>
