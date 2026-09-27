@@ -61,15 +61,29 @@ export const SHOP_TABS: { id: ShopTab; label: string }[] = [
 
 export const WEAPON_ORDER = Object.keys(WEAPONS) as WeaponId[];
 export const GUNGAME_ORDER: WeaponId[] = ["glock", "tmp", "mp5", "m16", "ak47", "m24", "awp", "knife"];
-export function shopOf(tab: ShopTab) { return WEAPON_ORDER.map((id) => WEAPONS[id]).filter((w) => w.tab === tab); }
+const ALIAS = new Set<WeaponId>(["rifle", "smg", "shot", "pistol", "burst", "sniper"]);
+export function shopOf(tab: ShopTab) {
+  return WEAPON_ORDER.map((id) => WEAPONS[id]).filter((w) => w.tab === tab && !ALIAS.has(w.id));
+}
 export function getWeapon(id: WeaponId | string | undefined): WeaponDef {
   return WEAPONS[(id as WeaponId) in WEAPONS ? (id as WeaponId) : "pm"];
 }
 export function startWeapon(mode: string): WeaponId {
-  if (mode === "knives") return "knife";
+  if (mode === "knives" || mode === "zombie") return mode === "knives" ? "knife" : "pm";
   if (mode === "sniper") return "m24";
   if (mode === "armsrace") return GUNGAME_ORDER[0]!;
   return "pm";
+}
+export function allowedBuy(mode: string, id: string) {
+  if (mode === "knives") return id === "knife";
+  if (mode === "armsrace") return false;
+  if (mode === "sniper") return ["m24", "scout", "awp", "pm", "p228", "glock", "p99", "deagle", "usp", "knife", "vest50", "vest100", "vest150", "ammo"].includes(id);
+  return true;
+}
+export function botBuyList(mode: string): WeaponId[] {
+  if (mode === "knives") return ["knife"];
+  if (mode === "sniper") return ["m24", "scout", "awp"];
+  return ["mp5", "ak47", "m4", "p90", "m16", "ump"];
 }
 export const GEAR = [
   { id: "vest50", name: "Vest 50%", price: 500, vest: 50 },
