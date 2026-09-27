@@ -13,6 +13,8 @@ const GAME_KEYS = new Set([
   "KeyR",
   "KeyE",
   "KeyQ",
+  "KeyB",
+  "KeyC",
   "Digit1",
   "Digit2",
   "Digit3",
@@ -53,17 +55,22 @@ export class GameInput {
   pause = false;
   slot = 0;
   nextWeapon = false;
+  touchSprint = false;
+  queuedReload = false;
 
   private prevJump = false;
   private prevReload = false;
   private prevPause = false;
   private prevFire = false;
   private prevNext = false;
+  private prevBuy = false;
   jumpPressed = false;
   reloadPressed = false;
   pausePressed = false;
   firePressed = false;
   nextPressed = false;
+  buyPressed = false;
+  buy = false;
 
   private onKeyDown = (e: KeyboardEvent) => {
     if (e.repeat) {
@@ -83,6 +90,7 @@ export class GameInput {
     this.touchMoveY = 0;
     this.lookDX = 0;
     this.lookDY = 0;
+    this.touchSprint = false;
   };
   private onMouseMove = (e: MouseEvent) => {
     if (!this.locked) return;
@@ -151,6 +159,7 @@ export class GameInput {
     this.prevPause = this.pause;
     this.prevFire = this.fire;
     this.prevNext = this.nextWeapon;
+    this.prevBuy = this.buy;
 
     const keys = this.injected ? new Set(this.injected) : this.keys;
     const stick = radialDeadzone(this.touchMoveX, this.touchMoveY, 0.12);
@@ -193,9 +202,11 @@ export class GameInput {
     this.moveY = my;
     this.jump = keys.has("Space") || padJump || this.queuedJump;
     this.queuedJump = false;
-    this.sprint = keys.has("ShiftLeft") || keys.has("ShiftRight") || padSprint || mag > 0.92;
-    this.reload = keys.has("KeyR") || padReload;
+    this.sprint = keys.has("ShiftLeft") || keys.has("ShiftRight") || padSprint || this.touchSprint;
+    this.reload = keys.has("KeyR") || padReload || this.queuedReload;
+    this.queuedReload = false;
     this.pause = keys.has("Escape") || padPause;
+    this.buy = keys.has("KeyB");
     this.nextWeapon = keys.has("KeyQ") || keys.has("KeyE");
     if (keys.has("Digit1")) this.slot = 1;
     else if (keys.has("Digit2")) this.slot = 2;
@@ -209,5 +220,6 @@ export class GameInput {
     this.pausePressed = this.pause && !this.prevPause;
     this.firePressed = this.fire && !this.prevFire;
     this.nextPressed = this.nextWeapon && !this.prevNext;
+    this.buyPressed = this.buy && !this.prevBuy;
   }
 }
