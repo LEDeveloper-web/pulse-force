@@ -20,8 +20,8 @@ import {
   type Party,
 } from "./ui/net";
 import {
-  AccountChip,
   AuthModal,
+  NeedAccount,
   PauseMenu,
   PickOperator,
   ResultsCard,
@@ -70,6 +70,7 @@ export function GameApp() {
   const [country, setCountry] = useState("INT");
   const [note, setNote] = useState("");
   const [rooms, setRooms] = useState(() => loadRooms());
+  const [picked, setPicked] = useState<ServerRoom | null>(null);
   const [phase, setPhase] = useState<Phase>("menus");
   const [winner, setWinner] = useState("");
   const [party, setParty] = useState<Party>(() => loadParty());
@@ -85,6 +86,7 @@ export function GameApp() {
 
   useEffect(() => {
     if (route.action === "game" && phase === "menus" && (route.page === "singleplayer" || route.page === "multiplayer" || route.page === "serverplayer" || route.page === "game")) {
+      if (route.page === "serverplayer" && !currentAccount()) return;
       if (route.page === "singleplayer") {
         setParty({ role: "solo", code: "", ip: "", kind: "local", country: "INT" });
       }
@@ -131,7 +133,7 @@ export function GameApp() {
         setMenuOpen(false);
         setWinner("");
         setPhase("play");
-        go({ page: party.kind === "online" ? "serverplayer" : "multiplayer", action: "game", server: party.ip || party.code, mode, map: ev.map });
+        go({ page: party.kind === "online" ? "serverplayer" : "multiplayer", action: "game", server: party.code || party.ip, mode, map: ev.map });
       }
     });
     busRef.current = bus;
@@ -161,6 +163,7 @@ export function GameApp() {
   const doSignOut = () => {
     signOut();
     setAccount(null);
+    if (route.page === "serverplayer") go({ page: "main" });
   };
 
   const leaveAll = (msg = "") => {
@@ -211,29 +214,46 @@ export function GameApp() {
   };
 
   const makeHost = async (kind: "local" | "online") => {
+    if (kind === "online" && !account) { setAuthOpen(true); return; }
     const p = await hostParty(kind, country);
     setParty(p);
-    const room = createRoom({ name: roomName, mode, map: mapId, kind, country, ip: p.ip });
+    const room = createRoom({ name: roomName, mode, map: mapId, kind, country, ip: kind === "local" ? p.ip : undefined });
     setRooms(loadRooms());
-    startMatch(kind === "online" ? "serverplayer" : "multiplayer", room.ip || room.id);
+    setPicked(room);
+    startMatch(kind === "online" ? "serverplayer" : "multiplayer", kind === "local" ? (room.ip || room.id) : room.id);
   };
 
-  const joinHost = (raw?: string, room?: ServerRoom, kind: "local" | "online" = "local") => {
+  const joinHostIp = (raw?: string, room?: ServerRoom) => {
     const token = (raw ?? joinCode).trim();
     const hit = room || rooms.find((r) =>
-      r.id.toLowerCase() === token.toLowerCase()
-      || r.name.toLowerCase() === token.toLowerCase()
-      || (r.ip && r.ip === token)
+      r.kind === "local" && (
+        r.id.toLowerCase() === token.toLowerCase()
+        || r.name.toLowerCase() === token.toLowerCase()
+        || (r.ip && r.ip === token)
+      )
     );
     if (!token && !hit) { setNote("Enter the host IP"); return; }
     if (hit) {
       setMode(hit.mode);
       setMapId(hit.map);
     }
-    const p = joinParty(hit?.ip || hit?.id || token, hit?.kind || kind);
+    const p = joinParty(hit?.ip || hit?.id || token, "local");
     if (!p) { setNote("Need a host IP"); return; }
     setParty(p);
-    startMatch((hit?.kind || kind) === "online" ? "serverplayer" : "multiplayer", p.ip || p.code);
+    startMatch("multiplayer", p.ip || p.code);
+  };
+
+  const joinPickedServer = (room?: ServerRoom | null) => {
+    if (!account) { setAuthOpen(true); return; }
+    const hit = room || picked;
+    if (!hit) { setNote("Pick a server first"); return; }
+    setMode(hit.mode);
+    setMapId(hit.map);
+    const p = joinParty(hit.id, "online");
+    if (!p) { setNote("Could not join"); return; }
+    setParty(p);
+    setPicked(hit);
+    startMatch("serverplayer", hit.id);
   };
 
   const playAgain = () => {
@@ -266,7 +286,7 @@ export function GameApp() {
     }
     const next = matchId + 1;
     busRef.current?.send({ t: "start", map: mapId, match: next });
-    startMatch(party.kind === "online" ? "serverplayer" : "multiplayer", party.ip || party.code);
+    startMatch(party.kind === "online" ? "serverplayer" : "multiplayer", party.code || party.ip);
   };
 
   const playing = phase === "play" || phase === "results";
@@ -360,6 +380,9 @@ export function GameApp() {
     onMode: setMode, onMap: setMapId, onTeam, onBots: setBots, onCharacter: (c: string) => patch({ character: c }),
   };
 
+  const onlineRooms = rooms.filter((r) => r.kind === "online");
+  const localRooms = rooms.filter((r) => r.kind === "local");
+
   if (route.page === "game") return <GameHub />;
   if (route.page === "singleplayer" && route.action === "create") {
     return <SingleplayerCreate {...setup} onStart={() => {
@@ -371,7 +394,7 @@ export function GameApp() {
   if (route.page === "singleplayer") return <SingleplayerHome />;
   if (route.page === "multiplayer" && route.action === "create") {
     return (
-      <MultiplayerCreate {...setup} roomName={roomName} setRoomName={setRoomName} hostIp={party.role === "host" ? party.ip : ""} onCreate={() => { void makeHost("local"); }} />
+      <MultiplayerCreate {...setup} roomName={roomName} setRoomName={setRoomName} hostIp={party.role === "host" && party.kind === "local" ? party.ip : ""} onCreate={() => { void makeHost("local"); }} />
     );
   }
   if (route.page === "multiplayer" && route.action === "join") {
@@ -379,9 +402,9 @@ export function GameApp() {
       <MultiplayerJoin
         code={joinCode}
         setCode={setJoinCode}
-        rooms={rooms.filter((r) => r.kind === "local")}
+        rooms={localRooms}
         note={note}
-        onJoin={(r) => joinHost(joinCode, r, "local")}
+        onJoin={(r) => joinHostIp(joinCode, r)}
       />
     );
   }
@@ -397,46 +420,60 @@ export function GameApp() {
   }
   if (route.page === "team") return <TeamPage team={team} character={profile.character} onTeam={onTeam} onCharacter={(c) => patch({ character: c })} />;
   if (route.page === "armory") return <ArmoryPage profile={profile} setProfile={setProfile} />;
-  if (route.page === "serverplayer" && route.action === "create") {
-    return (
-      <ServerCreate
-        {...setup}
-        roomName={roomName}
-        setRoomName={setRoomName}
-        country={country}
-        setCountry={setCountry}
-        onCreate={() => { void makeHost("online"); }}
-      />
-    );
-  }
-  if (route.page === "serverplayer" && route.action === "join") {
-    return (
-      <ServerJoin
-        code={joinCode}
-        setCode={setJoinCode}
-        rooms={rooms.filter((r) => r.kind === "online")}
-        note={note}
-        onJoin={(r) => joinHost(joinCode, r, "online")}
-      />
-    );
-  }
-  if (route.page === "serverplayer" && (route.action === "find" || route.action === "filter" || route.action === "search")) {
-    return (
-      <ServerFind
-        route={route}
-        rooms={rooms.filter((r) => r.kind === "online")}
-        onJoin={(r) => joinHost(r.ip || r.id, r, "online")}
-      />
-    );
-  }
+
   if (route.page === "serverplayer") {
+    if (!account) {
+      return (
+        <>
+          <NeedAccount onAuth={() => setAuthOpen(true)} />
+          {authOpen && <AuthModal onClose={() => setAuthOpen(false)} onOk={applyAccount} />}
+        </>
+      );
+    }
+    if (route.action === "create") {
+      return (
+        <ServerCreate
+          {...setup}
+          roomName={roomName}
+          setRoomName={setRoomName}
+          country={country}
+          setCountry={setCountry}
+          onCreate={() => { void makeHost("online"); }}
+        />
+      );
+    }
+    if (route.action === "join") {
+      return (
+        <ServerJoin
+          rooms={onlineRooms}
+          selected={picked?.id}
+          note={note}
+          onPick={setPicked}
+          onJoin={() => joinPickedServer()}
+        />
+      );
+    }
+    if (route.action === "find" || route.action === "filter" || route.action === "search") {
+      return (
+        <ServerFind
+          route={route}
+          rooms={onlineRooms}
+          selected={picked?.id}
+          onPick={setPicked}
+          onJoin={() => joinPickedServer()}
+        />
+      );
+    }
     return (
       <ServerHome
-        rooms={rooms.filter((r) => r.kind === "online")}
-        onJoin={(r) => joinHost(r.ip || r.id, r, "online")}
+        rooms={onlineRooms}
+        selected={picked?.id}
+        onPick={setPicked}
+        onJoin={() => joinPickedServer()}
       />
     );
   }
+
   if (route.page === "friendlist" && route.action === "find") return <FriendsFind />;
   if (route.page === "friendlist" && route.action === "search") return <FriendsFind />;
   if (route.page === "friendlist" && route.action === "add") return <FriendsAdd />;
